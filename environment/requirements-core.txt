@@ -1,0 +1,60 @@
+# adarag — core thesis-system stack (MUST work locally on the MacBook (Apple MPS)).
+# Installed into a fresh Python 3.11 conda env. No CUDA-only or old-pinned libs
+# here (those live in the baseline-reproduction repo's isolated envs).
+# Versions left open to resolve latest; freeze after install with:
+#   pip freeze > environment/requirements-lock.txt
+
+# --- deep learning / models (MPS backend) ---
+torch>=2.3
+transformers>=4.44
+accelerate>=0.33
+tokenizers>=0.19
+safetensors>=0.4
+huggingface_hub>=0.24
+sentence-transformers>=3.0
+datasets>=2.20
+
+# --- local 7B inference, Apple-silicon native (reduced precision / 4-bit) ---
+mlx>=0.16
+mlx-lm>=0.16
+
+# --- retrieval ---
+faiss-cpu>=1.8
+rank-bm25>=0.2.2
+numpy>=1.26
+scipy>=1.13
+scikit-learn>=1.4
+pandas>=2.2
+
+# --- orchestration: state-machine (LangGraph reference impl) ---
+langgraph>=0.2
+langchain>=0.2
+langchain-core>=0.2
+langchain-community>=0.2
+
+# --- structured/JSON router output + config ---
+pydantic>=2.7
+pydantic-settings>=2.3
+
+# --- evaluation (light metrics only; RAGAS/ARES live in the isolated eval env,
+#     see requirements-eval.txt — they pin an OLD langchain that clashes with the
+#     LangGraph 1.x stack above) ---
+evaluate>=0.4
+rouge-score>=0.1.2
+
+# --- serving / io / cli ---
+fastapi>=0.110
+uvicorn>=0.29
+httpx>=0.27
+requests>=2.31
+python-dotenv>=1.0
+orjson>=3.9
+jsonlines>=4.0
+pyyaml>=6.0
+tqdm>=4.66
+rich>=13.7
+typer>=0.12
+
+# --- notebooks ---
+ipykernel>=6.29
+jupyter>=1.0

@@ -1,0 +1,37 @@
+# envs / caches / build artifacts
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+
+# host-specific lock file; regenerate via setup_env.sh
+environment/requirements-lock.txt
+
+# data / models / indices / runs (never commit — large, re-derivable).
+# Anchored to the repo root so they don't swallow source dirs (src/adarag/data/).
+/data/
+/models/
+/indices/
+/runs/
+/results/
+/outputs/
+*.faiss
+*.index
+*.gguf
+*.safetensors
+.cache/
+hf_cache/
+
+# secrets
+.env
+
+# owner working notes and guides — not part of the examiner-facing repo
+docs/
+
+# tooling
+.claude/
+
+# OS
+.DS_Store

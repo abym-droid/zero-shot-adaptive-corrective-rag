@@ -1,0 +1,20 @@
+# adarag — ISOLATED evaluation env (conda env `adarag-eval`, Python 3.11).
+# RAGAS and ARES depend on the legacy langchain 0.2 line (they import
+# langchain_community.chat_models.vertexai, removed in langchain-community >=0.3).
+# That clashes head-on with the LangGraph 1.x stack in requirements-core.txt, so
+# faithfulness/answer-quality scoring runs in this SEPARATE env, reading the
+# system's prediction files off disk. Build with:
+#   conda create -n adarag-eval python=3.11 -y && conda activate adarag-eval
+#   pip install -r environment/requirements-eval.txt
+ragas==0.2.15
+langchain==0.2.16
+langchain-community==0.2.16
+langchain-core==0.2.43
+datasets>=2.20
+pandas>=2.2
+numpy>=1.26
+rank-bm25>=0.2.2
+nltk>=3.8
+
+# ARES — optional secondary faithfulness metric; heavy deps, install if needed:
+# ares-ai

@@ -1,0 +1,32 @@
+# adarag — OPTIONAL stack. Attempt these, but they may fail to build or conflict
+# on Apple silicon; none block core env readiness. Install with:
+#   pip install -r environment/requirements-optional.txt   # tolerate failures
+# or one at a time. Notes per line explain the risk / cloud alternative.
+
+# ColBERTv2 late-interaction retriever (router's high-tier retrieval option).
+# ragatouille pulls faiss/torch-heavy deps; if it conflicts, defer to Phase 3
+# or run ColBERT indexing on Colab.
+ragatouille>=0.0.8
+
+# Constrained/grammar decoding for guaranteed-valid router JSON. Works with
+# transformers + mlx; if install is troublesome, JSON-schema validation of the
+# raw LLM output is the fallback path.
+outlines>=0.0.46
+
+# llama.cpp Python bindings with Metal — alternative local 7B backend (GGUF).
+# Requires a source build (cmake/xcode); slow. mlx-lm is the primary path, so
+# this is a secondary option only.
+# llama-cpp-python>=0.2.90
+
+# ARES — Automated RAG Evaluation System (secondary faithfulness metric).
+# Package name is `ares-ai`; heavy transitive deps. If it conflicts with ragas,
+# keep it in a separate eval env.
+ares-ai
+
+# --- CLOUD-ONLY (do NOT install locally; Colab/Kaggle only) ---
+# vllm            # CUDA-only; used for baseline reproduction on Colab
+# bitsandbytes    # CUDA 4/8-bit; on Mac use mlx quantization instead
+# flash-attn      # CUDA-only
+
+# TeleQnA GitHub-zip fallback (AES-encrypted archive; used when HF access is gated)
+pyzipper>=0.3.6

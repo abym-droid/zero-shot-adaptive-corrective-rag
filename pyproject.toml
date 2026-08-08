@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adarag"
+version = "0.0.1"
+description = "Adaptive RAG with zero-shot LLM routing and corrective escalation (MSc thesis, LJMU)"
+authors = [{ name = "Abhishek Mukherjee" }]
+requires-python = ">=3.11"
+# Runtime deps are managed via environment/requirements-core.txt (installed by
+# environment/setup_env.sh). This project block only makes `adarag` importable
+# as an editable package: `pip install -e .`
+dependencies = []
+
+[project.scripts]
+adarag = "adarag.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
