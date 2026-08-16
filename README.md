@@ -5,6 +5,7 @@ LLM-based Query Routing and Corrective Feedback for Domain-Specific Knowledge
 Tasks.*
 
 **Author:** Abhishek Mukherjee
+
 **Degree:** MSc Artificial Intelligence & Machine Learning
 
 This repository is the thesis deliverable, the novel pipeline itself.
