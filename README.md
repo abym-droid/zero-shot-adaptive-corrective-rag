@@ -103,7 +103,7 @@ The reference execution environment is **Google Colab** (CUDA GPU, HF
 transformers backend) - `notebooks/adarag_colab_cuda.ipynb` stands the
 system up on a fresh VM. Development also runs locally on a MacBook (Apple
 Silicon, no CUDA) which is PyTorch on MPS for embedders, MLX for 4-bit 7B
-generation. The design constraint is mainatained throughout namely locally deployable,
+generation. The design constraint is maintained throughout, namely locally deployable,
 training-free models operating under constrained compute.
 
 ## Environments
