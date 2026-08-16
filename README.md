@@ -1,12 +1,13 @@
-# zero-shot-adaptive-corrective-rag
+# Zero Shot Adaptive Corrective RAG System
 
-MSc thesis system: *Adaptive Retrieval-Augmented Generation with Zero-shot
+**MSc thesis system:** *Adaptive Retrieval-Augmented Generation with Zero-shot
 LLM-based Query Routing and Corrective Feedback for Domain-Specific Knowledge
 Tasks.*
-Abhishek Mukherjee · MSc Artificial Intelligence & Machine Learning, LJMU.
-Supervisor: Dr. Kishore Bingi.
 
-This repository is the thesis deliverable — the novel pipeline itself.
+**Author:** Abhishek Mukherjee
+**Degree:** MSc Artificial Intelligence & Machine Learning
+
+This repository is the thesis deliverable, the novel pipeline itself.
 Reproduction of the published baselines it is compared against lives in the
 sibling repository `ljmu-thesis-baseline-reproduction`.
 
@@ -26,24 +27,24 @@ For each query:
 The whole loop is a single-agent state machine (LangGraph), built from
 locally deployable, training-free open-weight models: a 4-bit quantised
 Qwen2.5-7B via MLX on the local MacBook (no CUDA), or the same model through
-HF transformers on a cloud GPU. Proprietary APIs are not part of the system;
+HF transformers on a cloud GPU. Proprietary APIs are not part of the system and
 they are permitted later only as comparator/tooling in the evaluation.
 
 ## Quickstart (Google Colab)
 
 The reference environment is a stock **Google Colab GPU runtime** (T4 is
-sufficient) — every command in this README is expected to work there. Open
+sufficient). Every command in this README is expected to work there. Open
 `notebooks/adarag_colab_cuda.ipynb` in Colab, set *Runtime → Change runtime
 type → GPU*, and run it top to bottom. The notebook:
 
-1. checks the runtime and GPU,
-2. clones this repository and installs the pinned CUDA dependency stack,
-3. downloads sample datasets and prepares them
+1. Checks the runtime and GPU,
+2. Clones this repository and installs the pinned CUDA dependency stack,
+3. Downloads sample datasets and prepares them
    (`scripts/prepare_datasets.py`),
-4. builds a BM25 + FAISS index over the SciFact corpus,
-5. smoke-tests the full route → retrieve → generate → gate loop offline
+4. Builds a BM25 and FAISS index over the SciFact corpus,
+5. Smoke-tests the full route -> retrieve -> generate -> gate loop offline
    (`adarag ask ... --fake`), and
-6. runs a small real evaluation with the HF backend, writing
+6. Runs a small real evaluation with the HF backend, writing
    `predictions.jsonl` + `summary.json` under `runs/`.
 
 To run the offline test suite on the same runtime (no models, no network):
@@ -54,8 +55,8 @@ pip install pytest && python -m pytest tests -q
 
 `environment/colab_check.ipynb` is the standalone environment check for a
 fresh VM. A local path for Apple Silicon (conda env via
-`environment/setup_env.sh`, MLX 4-bit generation, no CUDA) exists as well —
-see *Compute* — but Colab is the environment to reproduce results in.
+`environment/setup_env.sh`, MLX 4-bit generation, no CUDA) exists as well.
+See *Compute*, but Colab is the environment to reproduce results in.
 
 ## CLI
 
@@ -98,10 +99,10 @@ not committed.
 ## Compute
 
 The reference execution environment is **Google Colab** (CUDA GPU, HF
-transformers backend) — `notebooks/adarag_colab_cuda.ipynb` stands the
+transformers backend) - `notebooks/adarag_colab_cuda.ipynb` stands the
 system up on a fresh VM. Development also runs locally on a MacBook (Apple
-Silicon, no CUDA): PyTorch on MPS for embedders, MLX for 4-bit 7B
-generation. The design constraint throughout: locally deployable,
+Silicon, no CUDA) which is PyTorch on MPS for embedders, MLX for 4-bit 7B
+generation. The design constraint is mainatained throughout namely locally deployable,
 training-free models operating under constrained compute.
 
 ## Environments
