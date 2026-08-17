@@ -19,7 +19,7 @@ from typing import Any, Optional
 import typer
 
 from adarag.config import ESCALATION_NEXT, RetrievalTier, settings
-from adarag.eval.metrics import aggregate, em, f1, mcq_em, routing_accuracy
+from adarag.eval.metrics import aggregate, em, f1, mcq_em, mcq_f1, routing_accuracy
 from adarag.eval.silver_labels import silver_labels_for
 
 __all__ = ["app", "run"]
@@ -252,6 +252,7 @@ def run(
             trace = list(state.get("trace", []) or [])
 
             score_em = mcq_em(answer, golds, options) if is_mcq else em(answer, golds)
+            score_f1 = mcq_f1(answer, golds, options) if is_mcq else f1(answer, golds)
             row: dict[str, Any] = {
                 "qid": qid,
                 "question": question,
@@ -262,7 +263,7 @@ def run(
                 "escalated": escalations > 0,
                 "verdict": state.get("verdict"),
                 "em": score_em,
-                "f1": f1(answer, golds),
+                "f1": score_f1,
                 "latency_s": round(latency, 4),
                 "prompt_tokens": _sum_trace(trace, "prompt_tokens"),
                 "completion_tokens": _sum_trace(trace, "completion_tokens"),

@@ -175,6 +175,26 @@ def mcq_em(
     return em(pred, golds)
 
 
+def mcq_f1(
+    pred: str,
+    golds: Sequence[str],
+    options: Mapping[str, str] | Sequence[str] | None = None,
+) -> float:
+    """Token F1 for one MCQ example, scoring the chosen option's text.
+
+    A bare-letter answer ("B") has no token overlap with a text gold
+    ("CONTRADICT"), so the letter is resolved to its option text first,
+    mirroring mcq_em. Falls back to plain f1() when no letter can be
+    extracted.
+    """
+    pred_letter = extract_option_letter(pred, options)
+    if pred_letter is not None and options:
+        pred_text = _as_option_map(options).get(pred_letter)
+        if pred_text is not None:
+            return f1(pred_text, golds)
+    return f1(pred, golds)
+
+
 def mcq_accuracy(
     preds: Sequence[str],
     golds: Sequence[Sequence[str]],

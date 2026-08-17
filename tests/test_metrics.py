@@ -15,6 +15,7 @@ from adarag.eval.metrics import (
     f1,
     mcq_accuracy,
     mcq_em,
+    mcq_f1,
     normalize_answer,
     recall_at_k,
     routing_accuracy,
@@ -107,6 +108,15 @@ def test_mcq_em_case_insensitive():
 def test_mcq_em_matches_option_text_via_options():
     options = {"A": "copper wire", "B": "optical fibre"}
     assert mcq_em("It uses optical fibre.", ["B", "optical fibre"], options) == 1.0
+
+
+def test_mcq_f1_letter_resolves_to_option_text():
+    # a bare-letter answer scores F1 against the option text, not the letter
+    opts = {"A": "SUPPORT", "B": "CONTRADICT", "C": "NOINFO"}
+    assert mcq_f1("B", ["CONTRADICT"], opts) == 1.0
+    assert mcq_f1("A", ["CONTRADICT"], opts) == 0.0
+    # no extractable letter falls back to plain text f1
+    assert mcq_f1("contradict", ["CONTRADICT"], opts) == 1.0
 
 
 def test_mcq_accuracy_batch_mean():
