@@ -10,6 +10,7 @@ ragas==0.2.15
 langchain==0.2.16
 langchain-community==0.2.16
 langchain-core==0.2.43
+langchain-anthropic<0.2
 datasets>=2.20
 pandas>=2.2
 numpy>=1.26

@@ -3,17 +3,27 @@
 Runs in the separate `adarag-eval` conda env, never in `adarag` (the two
 stacks pin conflicting langchain versions). Reads a run directory's
 predictions.jsonl, scores it with RAGAS and writes faithfulness.json next to
-it. The judge defaults to gpt-4o-mini; the thesis policy allows proprietary
-APIs as judge tooling, and the judge sits outside the deliverable pipeline.
+it. The thesis policy allows proprietary APIs as judge tooling; the judge
+sits outside the deliverable pipeline. Three judge options:
 
+    # OpenAI (default provider; pass the model you want)
     export OPENAI_API_KEY=...
-    conda run -n adarag-eval python scripts/score_faithfulness.py runs/<dir> [runs/<dir> ...]
+    conda run -n adarag-eval python scripts/score_faithfulness.py runs/<dir> --judge-model gpt-5.6-luna
 
-A local judge via an OpenAI-compatible endpoint is selectable with
---judge-base-url/--judge-model, but tried and rejected as the default:
-Qwen2.5-7B 4-bit served by mlx does not terminate on RAGAS's structured
-prompts (every generation runs to the token cap, so every score is NaN),
-regardless of max_tokens. Documented in the lab notebook, 18 Aug.
+    # Anthropic (model ids starting with "claude" switch provider automatically)
+    export ANTHROPIC_API_KEY=...
+    conda run -n adarag-eval python scripts/score_faithfulness.py runs/<dir> --judge-model claude-sonnet-5
+
+    # Local via Ollama's OpenAI-compatible endpoint (pick a large instruct model)
+    conda run -n adarag-eval python scripts/score_faithfulness.py runs/<dir> \\
+        --judge-base-url http://localhost:11434/v1 --judge-model <ollama tag> --judge-api-key ollama
+
+Judge caveats, tested 18 Aug: a local Qwen2.5-7B 4-bit judge (mlx server)
+does not terminate on RAGAS's structured prompts - every generation runs to
+the token cap and all scores come back NaN - so small local judges are out;
+larger local models via Ollama are untested and need a --limit probe before
+a full run. Anthropic judges are called without a temperature parameter
+(claude-sonnet-5 / claude-opus-5 reject non-default sampling values).
 
 MCQ handling (the telecom-adapted variant): a bare-letter answer ("B") gives
 a faithfulness judge nothing to check, so for MCQ rows the letter is resolved
@@ -88,7 +98,9 @@ def main() -> int:
                     help="run directories containing predictions.jsonl")
     ap.add_argument("--judge-base-url", default=None,
                     help="OpenAI-compatible judge endpoint; omit for api.openai.com")
-    ap.add_argument("--judge-model", default="gpt-4o-mini")
+    ap.add_argument("--judge-model", default="gpt-4o-mini",
+                    help="judge model id; ids starting with 'claude' use the "
+                         "Anthropic API, everything else an OpenAI-compatible one")
     ap.add_argument("--judge-api-key", default=None,
                     help="judge API key; omit to use OPENAI_API_KEY from the env")
     ap.add_argument("--embedder", default="sentence-transformers/all-MiniLM-L6-v2",
@@ -117,19 +129,31 @@ def main() -> int:
         return 0
 
     from datasets import Dataset
-    from langchain_openai import ChatOpenAI
     from ragas import evaluate
     from ragas.run_config import RunConfig
     from ragas.llms import LangchainLLMWrapper
     from ragas.metrics import faithfulness
 
-    judge_kwargs = dict(model=args.judge_model, temperature=0.0, timeout=300,
-                        max_tokens=args.judge_max_tokens)
-    if args.judge_base_url:
-        judge_kwargs["base_url"] = args.judge_base_url
-    if args.judge_api_key:
-        judge_kwargs["api_key"] = args.judge_api_key
-    judge = LangchainLLMWrapper(ChatOpenAI(**judge_kwargs))
+    if args.judge_model.startswith("claude"):
+        # Anthropic judge. No temperature: claude-sonnet-5 / claude-opus-5
+        # reject non-default sampling parameters.
+        from langchain_anthropic import ChatAnthropic
+
+        judge_kwargs = dict(model=args.judge_model, timeout=300,
+                            max_tokens=args.judge_max_tokens)
+        if args.judge_api_key:
+            judge_kwargs["api_key"] = args.judge_api_key
+        judge = LangchainLLMWrapper(ChatAnthropic(**judge_kwargs))
+    else:
+        from langchain_openai import ChatOpenAI
+
+        judge_kwargs = dict(model=args.judge_model, temperature=0.0, timeout=300,
+                            max_tokens=args.judge_max_tokens)
+        if args.judge_base_url:
+            judge_kwargs["base_url"] = args.judge_base_url
+        if args.judge_api_key:
+            judge_kwargs["api_key"] = args.judge_api_key
+        judge = LangchainLLMWrapper(ChatOpenAI(**judge_kwargs))
 
     metrics = [faithfulness]
     embeddings = None

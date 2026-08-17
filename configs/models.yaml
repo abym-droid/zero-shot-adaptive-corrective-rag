@@ -69,5 +69,8 @@ retrievers:
 
 # Proprietary APIs - comparator / tooling ONLY, never in the deliverable pipeline.
 comparators_tooling:
-  skyline: null            # e.g. gpt-4o - optional upper-bound comparator
-  llm_judge: null          # optional data-gen / judge tooling
+  skyline: null                       # optional upper-bound comparator, decided at eval time
+  llm_judge:                          # RAGAS faithfulness judge (scripts/score_faithfulness.py)
+    openai: [gpt-5.6-luna, gpt-5.6-terra]
+    anthropic: [claude-sonnet-5, claude-opus-5]
+    local: gemma4 MoE via Ollama      # untested; probe with --limit before a full run
