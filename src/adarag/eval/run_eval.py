@@ -250,6 +250,10 @@ def run(
             tier_final = str(state.get("tier", RetrievalTier.SINGLE_STEP.value))
             escalations = int(state.get("escalations", 0) or 0)
             trace = list(state.get("trace", []) or [])
+            # retrieved chunk texts, needed downstream by the faithfulness
+            # scorer (scripts/score_faithfulness.py, adarag-eval env)
+            contexts = [str(d.get("text", "")) for d in (state.get("docs") or [])
+                        if isinstance(d, dict)]
 
             score_em = mcq_em(answer, golds, options) if is_mcq else em(answer, golds)
             score_f1 = mcq_f1(answer, golds, options) if is_mcq else f1(answer, golds)
@@ -267,6 +271,7 @@ def run(
                 "latency_s": round(latency, 4),
                 "prompt_tokens": _sum_trace(trace, "prompt_tokens"),
                 "completion_tokens": _sum_trace(trace, "completion_tokens"),
+                "contexts": contexts,
                 "trace": trace,
                 # bookkeeping (aggregation + silver labelling)
                 "dataset": _field(ex, "dataset", _dataset_tag(dataset)),
