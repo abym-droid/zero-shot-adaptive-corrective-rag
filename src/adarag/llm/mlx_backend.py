@@ -36,14 +36,27 @@ class MLXBackend(LLMBackend):
         self.model, self.tokenizer = load(model_id)
 
     def _render_prompt(self, prompt: str, system: str | None) -> str:
-        """Render (system, user) turns through the model's chat template."""
+        """Render (system, user) turns through the model's chat template.
+
+        Some templates reject the system role outright (Mistral-7B-Instruct
+        raises a TemplateError), so on failure fold the system text into the
+        user turn and retry, the conventional workaround for those models.
+        """
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
-        return self.tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, tokenize=False
-        )
+        try:
+            return self.tokenizer.apply_chat_template(
+                messages, add_generation_prompt=True, tokenize=False
+            )
+        except Exception:
+            if not system:
+                raise
+            merged = [{"role": "user", "content": f"{system}\n\n{prompt}"}]
+            return self.tokenizer.apply_chat_template(
+                merged, add_generation_prompt=True, tokenize=False
+            )
 
     def generate(
         self,
