@@ -160,6 +160,13 @@ class DenseRetriever(Retriever):
         first query."""
         import faiss
 
+        # faiss's OpenMP pool segfaults next to the MLX runtime on Apple
+        # Silicon once the index is big enough to engage threaded search
+        # kernels (hit on the 642k-chunk telecom index; the 5.7k scifact one
+        # never triggered it). Single-threaded search costs ~0.01s per query
+        # at this scale, so cap it unconditionally.
+        faiss.omp_set_num_threads(1)
+
         in_dir = Path(in_dir)
         meta = json.loads((in_dir / _META_NAME).read_text(encoding="utf-8"))
         index = faiss.read_index(str(in_dir / _INDEX_NAME))
