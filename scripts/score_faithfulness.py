@@ -108,6 +108,9 @@ def main() -> int:
     ap.add_argument("--judge-max-tokens", type=int, default=4096,
                     help="max completion tokens for judge calls (RAGAS prompts "
                          "produce long statement lists; too low -> NaN scores)")
+    ap.add_argument("--judge-workers", type=int, default=2,
+                    help="concurrent judge calls; 2 suits a local judge, "
+                         "8+ is fine against api.openai.com / api.anthropic.com")
     ap.add_argument("--limit", type=int, default=None,
                     help="score only the first N scoreable rows per run")
     ap.add_argument("--dry-run", action="store_true",
@@ -134,6 +137,15 @@ def main() -> int:
     from ragas.llms import LangchainLLMWrapper
     from ragas.metrics import faithfulness
 
+    class DefaultTempLLMWrapper(LangchainLLMWrapper):
+        """RAGAS forces temperature=1e-8 on every judge call by mutating the
+        wrapped model (see LangchainLLMWrapper.generate_text). Reasoning-line
+        judges (gpt-5.x, o-series, claude-sonnet-5 / claude-opus-5) reject any
+        temperature except the provider default, so pin get_temperature to 1."""
+
+        def get_temperature(self, n: int) -> float:
+            return 1.0
+
     if args.judge_model.startswith("claude"):
         # Anthropic judge. No temperature: claude-sonnet-5 / claude-opus-5
         # reject non-default sampling parameters.
@@ -143,17 +155,28 @@ def main() -> int:
                             max_tokens=args.judge_max_tokens)
         if args.judge_api_key:
             judge_kwargs["api_key"] = args.judge_api_key
-        judge = LangchainLLMWrapper(ChatAnthropic(**judge_kwargs))
+        judge = DefaultTempLLMWrapper(ChatAnthropic(**judge_kwargs))
     else:
         from langchain_openai import ChatOpenAI
 
-        judge_kwargs = dict(model=args.judge_model, temperature=0.0, timeout=300,
-                            max_tokens=args.judge_max_tokens)
+        reasoning_judge = args.judge_model.startswith(("gpt-5", "o"))
+        if reasoning_judge:
+            # Reasoning-line OpenAI models reject `max_tokens` (want
+            # `max_completion_tokens`) and any temperature other than the
+            # default 1; langchain-openai 0.1.x would otherwise send 0.7.
+            judge_kwargs = dict(
+                model=args.judge_model, temperature=1, timeout=300,
+                model_kwargs={"max_completion_tokens": args.judge_max_tokens},
+            )
+        else:
+            judge_kwargs = dict(model=args.judge_model, temperature=0.0,
+                                timeout=300, max_tokens=args.judge_max_tokens)
         if args.judge_base_url:
             judge_kwargs["base_url"] = args.judge_base_url
         if args.judge_api_key:
             judge_kwargs["api_key"] = args.judge_api_key
-        judge = LangchainLLMWrapper(ChatOpenAI(**judge_kwargs))
+        wrapper = DefaultTempLLMWrapper if reasoning_judge else LangchainLLMWrapper
+        judge = wrapper(ChatOpenAI(**judge_kwargs))
 
     metrics = [faithfulness]
     embeddings = None
@@ -172,7 +195,8 @@ def main() -> int:
         ds = Dataset.from_list([{k: v for k, v in r.items() if k != "qid"}
                                 for r in rows])
         result = evaluate(ds, metrics=metrics, llm=judge, embeddings=embeddings,
-                          run_config=RunConfig(timeout=600, max_workers=2))
+                          run_config=RunConfig(timeout=600,
+                                               max_workers=args.judge_workers))
         scores = result.to_pandas()
         agg = {m.name: float(scores[m.name].mean()) for m in metrics
                if m.name in scores}
