@@ -48,6 +48,36 @@ class _NullRetriever:
         return []
 
 
+class _FixedRouter:
+    """Router stub for the fixed-strategy baseline arms (--force-tier).
+
+    Always returns the configured tier at zero routing cost, while honouring
+    the escalation back-edge's ``force_min_tier`` hint exactly as the real
+    router does, so the graph semantics are unchanged. Combine with
+    ``--no-escalation`` for a pure fixed-strategy arm.
+    """
+
+    def __init__(self, tier: RetrievalTier) -> None:
+        self._tier = tier
+
+    def route(self, question: str, *, force_min_tier: RetrievalTier | None = None):
+        from adarag.llm.base import GenResult
+        from adarag.router import RouteDecision, _TIER_ORDER
+
+        tier = self._tier
+        reason = "fixed-strategy arm"
+        if force_min_tier is not None and _TIER_ORDER[tier] < _TIER_ORDER[force_min_tier]:
+            reason += (
+                f" [promoted=True: {tier.value} -> {force_min_tier.value}"
+                " (force_min_tier)]"
+            )
+            tier = force_min_tier
+        return (
+            RouteDecision(tier=tier, reason=reason),
+            GenResult(text="", prompt_tokens=0, completion_tokens=0, latency_s=0.0),
+        )
+
+
 def _load_examples(dataset: Path) -> list[Any]:
     """Load QAExamples via adarag.data.loaders, with a minimal jsonl fallback.
 
@@ -179,6 +209,12 @@ def run(
         help="Corrective escalation gate on/off (the gate ablation; off sets "
         "max_escalations=0).",
     ),
+    force_tier: Optional[str] = typer.Option(
+        None, "--force-tier",
+        help="Fixed-strategy baseline arm: bypass the router and send every "
+        "question to this tier (no_retrieval | single_step | iterative). "
+        "Combine with --no-escalation for the pure fixed arm.",
+    ),
     limit: Optional[int] = typer.Option(
         None, "--limit", min=1, help="Evaluate only the first N examples."
     ),
@@ -215,6 +251,16 @@ def run(
         settings=eff_settings,
         prompt_variant=prompt_variant,
     )
+
+    if force_tier is not None:
+        try:
+            forced = RetrievalTier(force_tier)
+        except ValueError as exc:
+            raise typer.BadParameter(
+                f"unknown tier {force_tier!r} (expected one of "
+                f"{[t.value for t in RetrievalTier]})"
+            ) from exc
+        rag.router = _FixedRouter(forced)
 
     ts = time.strftime("%Y%m%d_%H%M%S")
     run_dir = out_dir or (eff_settings.runs_dir / f"{ts}_{_dataset_tag(dataset)}")
@@ -307,6 +353,7 @@ def run(
         "retriever": retriever if index else "null",
         "prompt_variant": prompt_variant,
         "escalation": escalation,
+        "force_tier": force_tier,
         "max_escalations": eff_settings.max_escalations,
         "top_k": eff_settings.top_k,
         "limit": limit,
