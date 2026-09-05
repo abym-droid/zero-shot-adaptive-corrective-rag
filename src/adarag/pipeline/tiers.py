@@ -9,6 +9,8 @@ per-LLM-call telemetry for the run trace.
 """
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Iterable, Mapping
 
@@ -194,6 +196,11 @@ def run_iterative(
     steps: list[dict] = []
     answer: str | None = None
 
+    # Post-freeze ablation switch (default off): force at least this many
+    # retrieval rounds before an ``ANSWER:`` is accepted. Set
+    # ADARAG_TIERC_MIN_ITERS=2 to make the tier iterate at least twice.
+    min_iters = int(os.environ.get("ADARAG_TIERC_MIN_ITERS", "1") or 1)
+
     for i in range(1, max_iters + 1):
         for doc in retriever.search(query, k=top_k):
             collected.setdefault(_doc_key(doc), doc)
@@ -213,9 +220,13 @@ def run_iterative(
         )
         step_text = res.text.strip()
         steps.append(_step(f"ircot_step_{i}", res))
-        if _ANSWER_MARKER in step_text:
+        if _ANSWER_MARKER in step_text and i >= min_iters:
             answer = extract_answer(step_text)
             break
+        if _ANSWER_MARKER in step_text:
+            # Early answer suppressed by the minimum-rounds switch: keep the
+            # reasoning as a thought and retrieve again with it.
+            step_text = step_text.split(_ANSWER_MARKER)[0].strip() or step_text
         thoughts.append(step_text)
         query = step_text  # next retrieval query = the reasoning step
 
